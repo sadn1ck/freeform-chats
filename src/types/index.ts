@@ -1,4 +1,12 @@
-export type ItemType = 'text' | 'image';
+export type ItemType = "text" | "image";
+
+export interface Connection {
+  id: string;
+  sourceId: string;
+  targetId: string;
+  sourcePosition: "top" | "right" | "bottom" | "left";
+  targetPosition: "top" | "right" | "bottom" | "left";
+}
 
 export interface CanvasItem {
   id: string;
