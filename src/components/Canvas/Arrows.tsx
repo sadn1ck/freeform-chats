@@ -3,10 +3,10 @@ import { useSnapshot } from "valtio";
 import { tabsStore } from "../../store/tabs";
 
 export function Arrows() {
-  const { tabs, activeTabId } = useSnapshot(tabsStore);
-  const activeTab = tabs.find((tab) => tab.id === activeTabId);
+  const { activeTabId, stores } = useSnapshot(tabsStore);
+  const store = stores[activeTabId];
 
-  if (!activeTab) return null;
+  if (!store) return null;
 
   return (
     <svg
@@ -19,11 +19,11 @@ export function Arrows() {
         pointerEvents: "none",
       }}
     >
-      {activeTab.connections.map((connection) => {
-        const sourceItem = activeTab.items.find(
+      {store.connections.map((connection) => {
+        const sourceItem = store.items.find(
           (item) => item.id === connection.sourceId
         );
-        const targetItem = activeTab.items.find(
+        const targetItem = store.items.find(
           (item) => item.id === connection.targetId
         );
 
@@ -112,7 +112,7 @@ export function Arrows() {
             markerEnd="url(#arrowhead)"
             className="pointer-events-auto"
             onDoubleClick={() => {
-              tabsStore.removeConnection(connection.id);
+              tabsStore.getActiveStore()?.removeConnection(connection.id);
             }}
           />
         );

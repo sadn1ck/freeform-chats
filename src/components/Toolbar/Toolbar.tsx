@@ -1,13 +1,14 @@
-import { Image, Type } from "lucide-react";
+import { Type } from "lucide-react";
+import { DEFAULT_ITEM_SIZE } from "../../utils/canvasLayout";
 
-const TOOLBAR_ITEMS = [
-  { type: "text" as const, icon: Type, width: 250, height: 250 },
-  { type: "image" as const, icon: Image, width: 250, height: 250 },
+const DEFAULT_TOOLBAR_INSERT_OPTIONS = [
+  { type: "text", icon: Type, ...DEFAULT_ITEM_SIZE },
 ];
 
 export function Toolbar() {
   const handleDragStart =
-    (item: (typeof TOOLBAR_ITEMS)[0]) => (event: React.DragEvent) => {
+    (item: (typeof DEFAULT_TOOLBAR_INSERT_OPTIONS)[0]) =>
+    (event: React.DragEvent) => {
       event.dataTransfer.setData("toolbar-item-dnd", JSON.stringify(item));
     };
 
@@ -28,7 +29,7 @@ export function Toolbar() {
         borderRadius: "12px 12px 0 0",
       }}
     >
-      {TOOLBAR_ITEMS.map((item) => {
+      {DEFAULT_TOOLBAR_INSERT_OPTIONS.map((item) => {
         const Icon = item.icon;
         return (
           <div

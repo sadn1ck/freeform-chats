@@ -1,6 +1,7 @@
 import { useDrag } from "@use-gesture/react";
 import { tabsStore } from "../../store/tabs";
 import type { CanvasItem as CanvasItemType } from "../../types";
+import { DEFAULT_ITEM_SIZE } from "../../utils/canvasLayout";
 import { Textarea } from "../ui/textarea";
 import { ConnectionPoint } from "./ConnectionPoint";
 
@@ -42,7 +43,7 @@ export function CanvasItem({ item }: Props) {
         memo = { x: item.x, y: item.y };
       }
 
-      tabsStore.updateItemInActiveTab(item.id, {
+      tabsStore.getActiveStore()?.updateItem(item.id, {
         x: memo.x + x,
         y: memo.y + y,
       });
@@ -54,17 +55,42 @@ export function CanvasItem({ item }: Props) {
   const handleTraverseClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     const paths = tabsStore.findReversePaths(item.id);
-    console.log("Reverse paths:");
+    const store = tabsStore.getActiveStore();
+    if (!store) return;
+
     paths.forEach((path) => {
-      console.log(
-        path.nodeIds.reverse().join(" -> "),
-        `(depth: ${path.depth})`
+      const partialPrompt: string[] = [];
+      const nodeIds = [...path.nodeIds].reverse();
+
+      nodeIds.forEach((nodeId) => {
+        const node = store.items.find((item) => item.id === nodeId);
+        partialPrompt.push(node?.content ?? "");
+      });
+
+      const lastNode = store.items.find(
+        (item) => item.id === nodeIds[nodeIds.length - 1]
       );
+      if (lastNode) {
+        const newItemId = store.addItem({
+          type: "text",
+          x: lastNode.x,
+          y: lastNode.y + lastNode.height + 20,
+          width: DEFAULT_ITEM_SIZE.width,
+          height: DEFAULT_ITEM_SIZE.height,
+          content: partialPrompt.join("\n"),
+        });
+        store.addConnection({
+          sourceId: lastNode.id,
+          targetId: newItemId,
+          sourcePosition: "bottom",
+          targetPosition: "top",
+        });
+      }
     });
   };
 
   const onContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    tabsStore.updateItemInActiveTab(item.id, {
+    tabsStore.getActiveStore()?.updateItem(item.id, {
       content: e.target.value,
     });
   };
@@ -95,7 +121,7 @@ export function CanvasItem({ item }: Props) {
               item.height
             );
 
-            tabsStore.addConnection({
+            tabsStore.getActiveStore()?.addConnection({
               sourceId: connection.sourceId,
               targetId: item.id,
               sourcePosition: connection.position,

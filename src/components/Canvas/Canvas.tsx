@@ -4,10 +4,11 @@ import { tabsStore } from "../../store/tabs";
 import type { DragItem } from "../../types";
 import { Arrows } from "./Arrows";
 import { CanvasItem } from "./CanvasItem";
+import { PasteHandler } from "./PasteHandler";
 
 export function Canvas() {
-  const { tabs, activeTabId } = useSnapshot(tabsStore);
-  const activeTab = tabs.find((tab) => tab.id === activeTabId);
+  const { activeTabId, stores } = useSnapshot(tabsStore);
+  const store = stores[activeTabId];
 
   const bind = useGesture({
     onDrop: ({ event }) => {
@@ -19,7 +20,7 @@ export function Canvas() {
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
 
-        tabsStore.addItemToActiveTab({
+        tabsStore.getActiveStore()?.addItem({
           type: dragItem.type,
           x,
           y,
@@ -31,15 +32,14 @@ export function Canvas() {
     },
   });
 
-  if (!activeTab) return null;
-
   return (
     <div
       {...bind()}
       onDragOver={(e) => e.preventDefault()}
-      className="absolute inset-0 bg-[#fafafa]"
+      className="absolute inset-0 bg-[#fafafa] canvas-container"
     >
-      {activeTab.items.map((item) => (
+      <PasteHandler />
+      {store?.items.map((item) => (
         <CanvasItem key={item.id} item={item} />
       ))}
       <Arrows />
