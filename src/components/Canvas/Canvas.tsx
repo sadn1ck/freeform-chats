@@ -1,14 +1,16 @@
 import { useGesture } from "@use-gesture/react";
+import { useCallback } from "react";
 import { useSnapshot } from "valtio";
 import { tabsStore } from "../../store/tabs";
 import type { DragItem } from "../../types";
 import { Arrows } from "./Arrows";
 import { CanvasItem } from "./CanvasItem";
+import { KeyHandler } from "./KeyHandler";
 import { PasteHandler } from "./PasteHandler";
 
-export function Canvas() {
-  const { activeTabId, stores } = useSnapshot(tabsStore);
-  const store = stores[activeTabId];
+export function Canvas({ id: canvasId }: { id: string }) {
+  const { stores } = useSnapshot(tabsStore);
+  const canvas = stores[canvasId];
 
   const bind = useGesture({
     onDrop: ({ event }) => {
@@ -20,7 +22,7 @@ export function Canvas() {
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
 
-        tabsStore.getActiveStore()?.addItem({
+        tabsStore.addItem(canvasId, {
           type: dragItem.type,
           x,
           y,
@@ -32,15 +34,35 @@ export function Canvas() {
     },
   });
 
+  const handleCanvasClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.target === e.currentTarget) {
+        tabsStore.clearSelection(canvasId);
+      }
+    },
+    [canvasId]
+  );
+
+  const isItemSelected = useCallback(
+    (id: string) => canvas.selectedItemIds.has(id),
+    [canvas.selectedItemIds]
+  );
+
   return (
     <div
       {...bind()}
+      onClick={handleCanvasClick}
       onDragOver={(e) => e.preventDefault()}
       className="absolute inset-0 bg-[#fafafa] canvas-container"
     >
-      <PasteHandler />
-      {store?.items.map((item) => (
-        <CanvasItem key={item.id} item={item} />
+      <PasteHandler key={`paste-${canvasId}`} activeTabId={canvasId} />
+      <KeyHandler key={`key-${canvasId}`} activeTabId={canvasId} />
+      {canvas?.items.map((item) => (
+        <CanvasItem
+          key={item.id}
+          item={item}
+          isSelected={isItemSelected(item.id)}
+        />
       ))}
       <Arrows />
     </div>

@@ -4,9 +4,9 @@ import { tabsStore } from "../../store/tabs";
 
 export function Arrows() {
   const { activeTabId, stores } = useSnapshot(tabsStore);
-  const store = stores[activeTabId];
+  const canvas = stores[activeTabId];
 
-  if (!store) return null;
+  if (!canvas) return null;
 
   return (
     <svg
@@ -19,11 +19,11 @@ export function Arrows() {
         pointerEvents: "none",
       }}
     >
-      {store.connections.map((connection) => {
-        const sourceItem = store.items.find(
+      {canvas.connections.map((connection) => {
+        const sourceItem = canvas.items.find(
           (item) => item.id === connection.sourceId
         );
-        const targetItem = store.items.find(
+        const targetItem = canvas.items.find(
           (item) => item.id === connection.targetId
         );
 
@@ -112,7 +112,7 @@ export function Arrows() {
             markerEnd="url(#arrowhead)"
             className="pointer-events-auto"
             onDoubleClick={() => {
-              tabsStore.getActiveStore()?.removeConnection(connection.id);
+              tabsStore.removeConnection(activeTabId, connection.id);
             }}
           />
         );

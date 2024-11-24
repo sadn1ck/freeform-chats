@@ -1,45 +1,22 @@
 import { nanoid } from "nanoid";
 import { proxy } from "valtio";
+import { proxySet } from "valtio/utils";
 import type { CanvasItem, Connection } from "../types";
 import { GraphPath } from "../types/graph";
 import { GraphTraverser } from "../utils/graphTraversal";
 
-interface CanvasStore {
+interface TabCanvas {
   items: CanvasItem[];
   connections: Connection[];
-  addItem: (item: Omit<CanvasItem, "id">) => string;
-  updateItem: (id: string, updates: Partial<CanvasItem>) => void;
-  addConnection: (connection: Omit<Connection, "id">) => void;
-  removeConnection: (connectionId: string) => void;
+  selectedItemIds: Set<string>;
 }
 
-function createCanvasStore(): CanvasStore {
-  return proxy<CanvasStore>({
+function createDefaultCanvas(): TabCanvas {
+  return {
     items: [],
     connections: [],
-    addItem(item) {
-      const newItem = { ...item, id: nanoid(8) };
-      this.items.push(newItem);
-      return newItem.id;
-    },
-    updateItem(id, updates) {
-      const index = this.items.findIndex((item) => item.id === id);
-      if (index !== -1) {
-        this.items[index] = { ...this.items[index], ...updates };
-      }
-    },
-    addConnection(connection) {
-      this.connections.push({ ...connection, id: nanoid(8) });
-    },
-    removeConnection(connectionId) {
-      const index = this.connections.findIndex(
-        (conn) => conn.id === connectionId
-      );
-      if (index !== -1) {
-        this.connections.splice(index, 1);
-      }
-    },
-  });
+    selectedItemIds: proxySet<string>(),
+  };
 }
 
 interface Tab {
@@ -48,23 +25,39 @@ interface Tab {
 
 interface TabsStore {
   tabsList: Tab[];
-  stores: Record<string, CanvasStore>;
+  stores: Record<string, TabCanvas>;
   activeTabId: string;
   addTab: () => void;
   removeTab: (id: string) => void;
   setActiveTab: (id: string) => void;
-  getTabStore: (id: string) => CanvasStore | undefined;
-  getActiveStore: () => CanvasStore | undefined;
+  getTabStore: (id: string) => TabCanvas | undefined;
+  getActiveCanvas: () => TabCanvas | undefined;
   findReversePaths: (itemId: string) => GraphPath[];
+
+  // canvas
+  addItem: (targetCanvas: string, item: Omit<CanvasItem, "id">) => string;
+  updateItem: (
+    targetCanvas: string,
+    id: string,
+    updates: Partial<CanvasItem>
+  ) => void;
+  addConnection: (
+    targetCanvas: string,
+    connection: Omit<Connection, "id">
+  ) => void;
+  removeConnection: (targetCanvas: string, connectionId: string) => void;
+  selectItem: (targetCanvas: string, id: string) => void;
+  clearSelection: (targetCanvas: string) => void;
+  removeItems: (tabId: string, itemIds: string[]) => void;
 }
 
 const initialTabId = nanoid(8);
 
 export const tabsStore = proxy<TabsStore>({
-  tabsList: [{ id: initialTabId }],
   stores: {
-    [initialTabId]: createCanvasStore(),
+    [initialTabId]: createDefaultCanvas(),
   },
+  tabsList: [{ id: initialTabId }],
   activeTabId: initialTabId,
 
   addTab() {
@@ -72,7 +65,7 @@ export const tabsStore = proxy<TabsStore>({
     this.tabsList.push({
       id: newId,
     });
-    this.stores[newId] = createCanvasStore();
+    this.stores[newId] = createDefaultCanvas();
     this.activeTabId = newId;
   },
 
@@ -96,15 +89,83 @@ export const tabsStore = proxy<TabsStore>({
     return this.stores[id];
   },
 
-  getActiveStore() {
+  getActiveCanvas() {
     return this.stores[this.activeTabId];
   },
 
   findReversePaths(itemId: string) {
-    const store = this.getActiveStore();
+    const store = this.getActiveCanvas();
     if (!store) return [];
 
     const traverser = new GraphTraverser(store.connections, store.items);
     return traverser.findReversePathsFrom(itemId);
+  },
+
+  addItem(targetCanvas: string, item: Omit<CanvasItem, "id">): string {
+    const canvas = this.stores[targetCanvas];
+    if (!canvas) throw new Error("Canvas not found");
+
+    const newItem = { ...item, id: nanoid(8) };
+    canvas.items.push(newItem);
+    return newItem.id;
+  },
+
+  updateItem(
+    targetCanvas: string,
+    id: string,
+    updates: Partial<CanvasItem>
+  ): void {
+    const canvas = this.stores[targetCanvas];
+    if (!canvas) throw new Error("Canvas not found");
+
+    const index = canvas.items.findIndex((item) => item.id === id);
+    if (index !== -1) {
+      canvas.items[index] = { ...canvas.items[index], ...updates };
+    }
+  },
+
+  addConnection(
+    targetCanvas: string,
+    connection: Omit<Connection, "id">
+  ): void {
+    const canvas = this.stores[targetCanvas];
+    if (!canvas) throw new Error("Canvas not found");
+
+    canvas.connections.push({ ...connection, id: nanoid(8) });
+  },
+
+  removeConnection(targetCanvas: string, connectionId: string): void {
+    const canvas = this.stores[targetCanvas];
+    if (!canvas) throw new Error("Canvas not found");
+
+    const index = canvas.connections.findIndex(
+      (conn) => conn.id === connectionId
+    );
+    if (index !== -1) {
+      canvas.connections.splice(index, 1);
+    }
+  },
+
+  selectItem(targetCanvas: string, id: string): void {
+    const canvas = this.stores[targetCanvas];
+    if (!canvas) throw new Error("Canvas not found");
+
+    canvas.selectedItemIds.clear();
+    canvas.selectedItemIds.add(id);
+  },
+
+  clearSelection(targetCanvas: string): void {
+    const canvas = this.stores[targetCanvas];
+    if (!canvas) throw new Error("Canvas not found");
+
+    if (canvas.selectedItemIds.size > 0) {
+      canvas.selectedItemIds.clear();
+    }
+  },
+
+  removeItems(tabId: string, itemIds: string[]): void {
+    const store = this.stores[tabId];
+    store.items = store.items.filter((item) => !itemIds.includes(item.id));
+    itemIds.forEach((id) => store.selectedItemIds.delete(id));
   },
 });

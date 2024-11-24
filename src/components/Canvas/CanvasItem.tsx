@@ -1,4 +1,5 @@
 import { useDrag } from "@use-gesture/react";
+import { useSnapshot } from "valtio";
 import { tabsStore } from "../../store/tabs";
 import type { CanvasItem as CanvasItemType } from "../../types";
 import { DEFAULT_ITEM_SIZE } from "../../utils/canvasLayout";
@@ -7,6 +8,7 @@ import { ConnectionPoint } from "./ConnectionPoint";
 
 interface Props {
   item: CanvasItemType;
+  isSelected: boolean;
 }
 
 const getClosestPosition = (
@@ -36,50 +38,60 @@ const getClosestPosition = (
   return closest as "top" | "right" | "bottom" | "left";
 };
 
-export function CanvasItem({ item }: Props) {
+export function CanvasItem({ item, isSelected }: Props) {
+  const { activeTabId, stores } = useSnapshot(tabsStore);
+  const writeStore = stores[activeTabId];
+
   const bind = useDrag(
     ({ movement: [x, y], first, memo = { x: item.x, y: item.y } }) => {
       if (first) {
         memo = { x: item.x, y: item.y };
       }
 
-      tabsStore.getActiveStore()?.updateItem(item.id, {
-        x: memo.x + x,
-        y: memo.y + y,
-      });
+      if (Math.abs(x) >= 5 || Math.abs(y) >= 5) {
+        tabsStore.updateItem(activeTabId, item.id, {
+          x: memo.x + x,
+          y: memo.y + y,
+        });
+      }
 
       return memo;
+    },
+    {
+      pointer: {
+        keys: false,
+      },
     }
   );
 
   const handleTraverseClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+
     const paths = tabsStore.findReversePaths(item.id);
-    const store = tabsStore.getActiveStore();
-    if (!store) return;
+    if (!writeStore) return;
 
     paths.forEach((path) => {
       const partialPrompt: string[] = [];
       const nodeIds = [...path.nodeIds].reverse();
 
       nodeIds.forEach((nodeId) => {
-        const node = store.items.find((item) => item.id === nodeId);
+        const node = writeStore.items.find((item) => item.id === nodeId);
         partialPrompt.push(node?.content ?? "");
       });
 
-      const lastNode = store.items.find(
+      const lastNode = writeStore.items.find(
         (item) => item.id === nodeIds[nodeIds.length - 1]
       );
       if (lastNode) {
-        const newItemId = store.addItem({
+        const newItemId = tabsStore.addItem(activeTabId, {
           type: "text",
           x: lastNode.x,
-          y: lastNode.y + lastNode.height + 20,
+          y: lastNode.y + lastNode.height + 60,
           width: DEFAULT_ITEM_SIZE.width,
           height: DEFAULT_ITEM_SIZE.height,
           content: partialPrompt.join("\n"),
         });
-        store.addConnection({
+        tabsStore.addConnection(activeTabId, {
           sourceId: lastNode.id,
           targetId: newItemId,
           sourcePosition: "bottom",
@@ -90,14 +102,20 @@ export function CanvasItem({ item }: Props) {
   };
 
   const onContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    tabsStore.getActiveStore()?.updateItem(item.id, {
+    tabsStore.updateItem(activeTabId, item.id, {
       content: e.target.value,
     });
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    tabsStore.selectItem(activeTabId, item.id);
+    e.stopPropagation();
   };
 
   return (
     <div
       {...bind()}
+      onClick={handleClick}
       onDragOver={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -121,7 +139,7 @@ export function CanvasItem({ item }: Props) {
               item.height
             );
 
-            tabsStore.getActiveStore()?.addConnection({
+            tabsStore.addConnection(activeTabId, {
               sourceId: connection.sourceId,
               targetId: item.id,
               sourcePosition: connection.position,
@@ -139,7 +157,7 @@ export function CanvasItem({ item }: Props) {
         height: item.height,
         cursor: "move",
         backgroundColor: item.type === "text" ? "#f0f0f0" : "#e0e0e0",
-        border: "1px solid #ccc",
+        boxShadow: isSelected ? "0 0 0 2px #2563eb" : "0 0 0 1px #ccc",
         borderRadius: "4px",
         userSelect: "none",
         touchAction: "none",

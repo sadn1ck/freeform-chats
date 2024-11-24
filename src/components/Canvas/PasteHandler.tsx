@@ -3,8 +3,8 @@ import { useSnapshot } from "valtio";
 import { tabsStore } from "../../store/tabs";
 import { DEFAULT_ITEM_SIZE, findEmptySpace } from "../../utils/canvasLayout";
 
-export function PasteHandler() {
-  const { activeTabId, stores } = useSnapshot(tabsStore);
+export function PasteHandler({ activeTabId }: { activeTabId: string }) {
+  const { stores } = useSnapshot(tabsStore);
   const store = stores[activeTabId];
 
   // Use ref to get canvas size since it might change
@@ -17,9 +17,6 @@ export function PasteHandler() {
       const text = e.clipboardData?.getData("text");
       if (!text?.trim()) return;
 
-      const writeStore = tabsStore.getActiveStore();
-      if (!writeStore) return;
-
       const position = findEmptySpace(
         store.items.map((item) => ({
           x: item.x,
@@ -31,7 +28,7 @@ export function PasteHandler() {
         canvasSizeRef.current
       );
 
-      writeStore.addItem({
+      tabsStore.addItem(activeTabId, {
         type: "text",
         content: text,
         height: DEFAULT_ITEM_SIZE.height,
