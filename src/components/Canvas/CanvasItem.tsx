@@ -3,6 +3,7 @@ import { useDrag } from "@use-gesture/react";
 import { TrashIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import { useSnapshot } from "valtio";
+import { cn } from "../../lib/utils";
 import { tabsStore } from "../../store/tabs";
 import type { CanvasItem as CanvasItemType, ItemType } from "../../types";
 import { constructPrompt, streamPromptResponse } from "../../utils/ai";
@@ -208,7 +209,11 @@ export function CanvasItem({ item, isSelected }: Props) {
             className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-md min-w-[560px] min-h-[500px]"
           >
             <Dialog.Title className="pl-1 pb-2">Edit item</Dialog.Title>
-            <ItemTextArea item={item} onChange={onContentChange} />
+            <ItemTextArea
+              item={item}
+              onChange={onContentChange}
+              className="min-w-[560px] min-h-[500px]"
+            />
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
@@ -228,7 +233,11 @@ export function CanvasItem({ item, isSelected }: Props) {
         <option value="user">User</option>
       </select>
       <div className="pt-6 p-1 h-full">
-        <ItemTextArea item={item} onChange={onContentChange} />
+        <ItemTextArea
+          item={item}
+          onChange={onContentChange}
+          className="w-full h-2/3"
+        />
       </div>
       <ConnectionPoint item={item} position="top" />
       <ConnectionPoint item={item} position="right" />
@@ -263,16 +272,18 @@ export function CanvasItem({ item, isSelected }: Props) {
 function ItemTextArea({
   item,
   onChange,
+  className,
 }: {
   item: CanvasItemType;
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  className?: string;
 }) {
   return (
     <Textarea
       // goddamn react moment
       defaultValue={item.content}
       onChange={onChange}
-      className="w-full h-2/3 scroll-py-4 scroll-my-4 bg-white resize-none"
+      className={cn("scroll-py-4 scroll-my-4 bg-white resize-none", className)}
     />
   );
 }
