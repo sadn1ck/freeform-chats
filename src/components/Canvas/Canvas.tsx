@@ -44,7 +44,7 @@ export function Canvas({ id: canvasId }: { id: string }) {
   );
 
   const isItemSelected = useCallback(
-    (id: string) => canvas.selectedItemIds.has(id),
+    (id: string) => canvas.selectedItemIds.includes(id),
     [canvas.selectedItemIds]
   );
 

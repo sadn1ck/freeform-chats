@@ -29,24 +29,6 @@ export function Arrows() {
 
         if (!sourceItem || !targetItem) return null;
 
-        // const getPointCoordinates = (
-        //   item: typeof sourceItem,
-        //   position: string
-        // ) => {
-        //   switch (position) {
-        //     case "top":
-        //       return [item.x + item.width / 2, item.y];
-        //     case "right":
-        //       return [item.x + item.width, item.y + item.height / 2];
-        //     case "bottom":
-        //       return [item.x + item.width / 2, item.y + item.height];
-        //     case "left":
-        //       return [item.x, item.y + item.height / 2];
-        //     default:
-        //       return [0, 0];
-        //   }
-        // };
-
         const argsForBoxToBox = (
           source: typeof sourceItem,
           target: typeof targetItem
@@ -62,20 +44,6 @@ export function Arrows() {
             target.height,
           ];
         };
-
-        // const [x1, y1] = getPointCoordinates(
-        //   sourceItem,
-        //   connection.sourcePosition
-        // );
-        // const [x2, y2] = getPointCoordinates(
-        //   targetItem,
-        //   connection.targetPosition
-        // );
-
-        // const [sx, sy, cx, cy, ex, ey, ae, as, ec] = getArrow(x1, y1, x2, y2, {
-        //   padStart: 6,
-        //   padEnd: 6,
-        // });
 
         const args = argsForBoxToBox(sourceItem, targetItem);
         const [x0, y0, x1, y1, x2, y2, x3, y3] = args;

@@ -1,4 +1,7 @@
+import * as Dialog from "@radix-ui/react-dialog";
 import { useDrag } from "@use-gesture/react";
+import { TrashIcon } from "lucide-react";
+import { useRef, useState } from "react";
 import { useSnapshot } from "valtio";
 import { tabsStore } from "../../store/tabs";
 import type { CanvasItem as CanvasItemType, ItemType } from "../../types";
@@ -41,10 +44,20 @@ const getClosestPosition = (
 
 export function CanvasItem({ item, isSelected }: Props) {
   const { activeTabId, stores } = useSnapshot(tabsStore);
-  const writeStore = stores[activeTabId];
+  const [deep, setDeep] = useState(false);
 
-  const bind = useDrag(
-    ({ movement: [x, y], first, memo = { x: item.x, y: item.y } }) => {
+  const store = stores[activeTabId];
+
+  const ref = useRef<HTMLDivElement>(null);
+
+  useDrag(
+    ({ movement: [x, y], first, memo = { x: item.x, y: item.y }, event }) => {
+      if (event?.target) {
+        const t = event.target as HTMLElement;
+        if (t.tagName === "TEXTAREA") {
+          return memo;
+        }
+      }
       if (first) {
         memo = { x: item.x, y: item.y };
       }
@@ -62,6 +75,7 @@ export function CanvasItem({ item, isSelected }: Props) {
       pointer: {
         keys: false,
       },
+      target: ref,
     }
   );
 
@@ -69,21 +83,21 @@ export function CanvasItem({ item, isSelected }: Props) {
     e.stopPropagation();
 
     const paths = tabsStore.findReversePaths(item.id);
-    if (!writeStore) return;
+    if (!store) return;
 
     paths.forEach((path) => {
       const partialPrompt: { type: ItemType; content: string }[] = [];
       const nodeIds = [...path.nodeIds].reverse();
 
       nodeIds.forEach((nodeId) => {
-        const node = writeStore.items.find((item) => item.id === nodeId);
+        const node = store.items.find((item) => item.id === nodeId);
         partialPrompt.push({
           type: node?.type ?? "user",
           content: node?.content ?? "",
         });
       });
 
-      const lastNode = writeStore.items.find(
+      const lastNode = store.items.find(
         (item) => item.id === nodeIds[nodeIds.length - 1]
       );
       if (lastNode) {
@@ -129,7 +143,8 @@ export function CanvasItem({ item, isSelected }: Props) {
 
   return (
     <div
-      {...bind()}
+      ref={ref}
+      data-canvas-item-id={item.id}
       onClick={handleClick}
       onDragOver={(e) => {
         e.preventDefault();
@@ -182,11 +197,24 @@ export function CanvasItem({ item, isSelected }: Props) {
         userSelect: "none",
         touchAction: "none",
       }}
-      className="canvas-item group/canvas-item"
+      className="canvas-item group/canvas-item backdrop-blur-md p-1"
     >
-      <pre className="absolute left-0 bottom-0 text-xs">
+      <Dialog.Root open={deep} onOpenChange={setDeep}>
+        <Dialog.Trigger className="absolute top-0 right-0"></Dialog.Trigger>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-black/50" />
+          <Dialog.Content
+            aria-describedby={undefined}
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-md min-w-[560px] min-h-[500px]"
+          >
+            <Dialog.Title className="pl-1 pb-2">Edit item</Dialog.Title>
+            <ItemTextArea item={item} onChange={onContentChange} />
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+      <p className="absolute left-0.5 bottom-0.5 text-xs pointer-events-none tabular-nums">
         {item.id} - word count: {words.length}
-      </pre>
+      </p>
       <select
         value={item.type}
         onChange={(e) => {
@@ -200,23 +228,51 @@ export function CanvasItem({ item, isSelected }: Props) {
         <option value="user">User</option>
       </select>
       <div className="pt-6 p-1 h-full">
-        <Textarea
-          value={item.content}
-          onChange={onContentChange}
-          className="w-full h-2/3 scroll-py-4 scroll-my-4 bg-white"
-        />
+        <ItemTextArea item={item} onChange={onContentChange} />
       </div>
       <ConnectionPoint item={item} position="top" />
       <ConnectionPoint item={item} position="right" />
       <ConnectionPoint item={item} position="bottom" />
       <ConnectionPoint item={item} position="left" />
-      <button
-        onClick={handleTraverseClick}
-        className="absolute top-0 right-0 p-1 text-xs border-border border-gray-400 text-white rounded w-5 h-5 inline-flex items-center justify-center"
-        style={{ fontSize: "10px" }}
-      >
-        🔍
-      </button>
+      <div className="absolute top-1 right-1 flex items-center gap-1">
+        <button
+          className="bg-red-200 p-1 rounded-sm text-xs"
+          onClick={() => tabsStore.removeItems(activeTabId, [item.id])}
+        >
+          <TrashIcon className="w-4 h-4" />
+        </button>
+        {item.type !== "system" && (
+          <button
+            onClick={handleTraverseClick}
+            className="bg-gray-100 hover:bg-gray-300 p-1 rounded-sm text-xs"
+          >
+            Run till here
+          </button>
+        )}
+        <button
+          onClick={() => setDeep(!deep)}
+          className="bg-gray-100 hover:bg-gray-300 p-1 rounded-sm text-xs"
+        >
+          ↗️
+        </button>
+      </div>
     </div>
+  );
+}
+
+function ItemTextArea({
+  item,
+  onChange,
+}: {
+  item: CanvasItemType;
+  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+}) {
+  return (
+    <Textarea
+      // goddamn react moment
+      defaultValue={item.content}
+      onChange={onChange}
+      className="w-full h-2/3 scroll-py-4 scroll-my-4 bg-white resize-none"
+    />
   );
 }

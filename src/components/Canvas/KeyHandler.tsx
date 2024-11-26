@@ -16,7 +16,7 @@ export function KeyHandler({ activeTabId }: { activeTabId: string }) {
         return;
       }
 
-      if (e.key === "Backspace" && store.selectedItemIds.size > 0) {
+      if (e.key === "Backspace" && store.selectedItemIds.length > 0) {
         e.preventDefault();
         tabsStore.removeItems(activeTabId, Array.from(store.selectedItemIds));
       }

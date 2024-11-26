@@ -73,4 +73,7 @@
   body {
     @apply bg-background text-foreground;
   }
+  select {
+    @apply rounded-sm text-sm;
+  }
 }

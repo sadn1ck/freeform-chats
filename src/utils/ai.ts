@@ -4,8 +4,10 @@ import { subscribeKey } from "valtio/utils";
 import { tabsStore } from "../store/tabs";
 import { AsyncIterableStream, ItemType } from "../types";
 
+export const models = ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo-instruct"];
+
 let openai = createOpenAI({
-  apiKey: "",
+  apiKey: tabsStore.apiKey,
 });
 
 subscribeKey(tabsStore, "apiKey", (nextVal) => {
@@ -27,8 +29,9 @@ export function constructPrompt(
 export function streamPromptResponse(
   messages: CoreMessage[]
 ): AsyncIterableStream<string> {
+  console.log(`[dbg] api call to ${tabsStore.modelId}`, messages);
   const stream = streamText({
-    model: openai("gpt-4o-mini"),
+    model: openai(tabsStore.modelId),
     messages,
   });
 

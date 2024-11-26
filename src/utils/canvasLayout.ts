@@ -8,7 +8,7 @@ interface Size {
   height: number;
 }
 
-export const DEFAULT_ITEM_SIZE: Size = { width: 250, height: 250 };
+export const DEFAULT_ITEM_SIZE: Size = { width: 250, height: 150 };
 
 interface Rect extends Point, Size {}
 
