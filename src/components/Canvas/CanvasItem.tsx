@@ -1,7 +1,8 @@
 import { useDrag } from "@use-gesture/react";
 import { useSnapshot } from "valtio";
 import { tabsStore } from "../../store/tabs";
-import type { CanvasItem as CanvasItemType } from "../../types";
+import type { CanvasItem as CanvasItemType, ItemType } from "../../types";
+import { constructPrompt, streamPromptResponse } from "../../utils/ai";
 import { DEFAULT_ITEM_SIZE } from "../../utils/canvasLayout";
 import { Textarea } from "../ui/textarea";
 import { ConnectionPoint } from "./ConnectionPoint";
@@ -71,12 +72,15 @@ export function CanvasItem({ item, isSelected }: Props) {
     if (!writeStore) return;
 
     paths.forEach((path) => {
-      const partialPrompt: string[] = [];
+      const partialPrompt: { type: ItemType; content: string }[] = [];
       const nodeIds = [...path.nodeIds].reverse();
 
       nodeIds.forEach((nodeId) => {
         const node = writeStore.items.find((item) => item.id === nodeId);
-        partialPrompt.push(node?.content ?? "");
+        partialPrompt.push({
+          type: node?.type ?? "user",
+          content: node?.content ?? "",
+        });
       });
 
       const lastNode = writeStore.items.find(
@@ -84,12 +88,12 @@ export function CanvasItem({ item, isSelected }: Props) {
       );
       if (lastNode) {
         const newItemId = tabsStore.addItem(activeTabId, {
-          type: "text",
+          type: "assistant",
           x: lastNode.x,
           y: lastNode.y + lastNode.height + 60,
           width: DEFAULT_ITEM_SIZE.width,
           height: DEFAULT_ITEM_SIZE.height,
-          content: partialPrompt.join("\n"),
+          content: "",
         });
         tabsStore.addConnection(activeTabId, {
           sourceId: lastNode.id,
@@ -97,6 +101,11 @@ export function CanvasItem({ item, isSelected }: Props) {
           sourcePosition: "bottom",
           targetPosition: "top",
         });
+        tabsStore.addToContent(
+          activeTabId,
+          newItemId,
+          streamPromptResponse(constructPrompt(partialPrompt))
+        );
       }
     });
   };
@@ -111,6 +120,12 @@ export function CanvasItem({ item, isSelected }: Props) {
     tabsStore.selectItem(activeTabId, item.id);
     e.stopPropagation();
   };
+
+  const words = Array.from(
+    new Intl.Segmenter("en", { granularity: "word" }).segment(
+      item.content ?? ""
+    )
+  ).filter((part) => part.isWordLike);
 
   return (
     <div
@@ -156,7 +171,12 @@ export function CanvasItem({ item, isSelected }: Props) {
         width: item.width,
         height: item.height,
         cursor: "move",
-        backgroundColor: item.type === "text" ? "#f0f0f0" : "#e0e0e0",
+        backgroundColor:
+          item.type === "system"
+            ? "rgba(240, 240, 240, 0.5)"
+            : item.type === "assistant"
+            ? "rgba(181, 239, 169, 0.5)"
+            : "rgba(155, 189, 232, 0.5)",
         boxShadow: isSelected ? "0 0 0 2px #2563eb" : "0 0 0 1px #ccc",
         borderRadius: "4px",
         userSelect: "none",
@@ -164,12 +184,26 @@ export function CanvasItem({ item, isSelected }: Props) {
       }}
       className="canvas-item group/canvas-item"
     >
-      <span className="absolute left-0 top-0 text-xs">{item.id}</span>
+      <pre className="absolute left-0 bottom-0 text-xs">
+        {item.id} - word count: {words.length}
+      </pre>
+      <select
+        value={item.type}
+        onChange={(e) => {
+          tabsStore.updateItem(activeTabId, item.id, {
+            type: e.target.value as ItemType,
+          });
+        }}
+      >
+        <option value="system">System</option>
+        <option value="assistant">Assistant</option>
+        <option value="user">User</option>
+      </select>
       <div className="pt-6 p-1 h-full">
         <Textarea
           value={item.content}
           onChange={onContentChange}
-          className="w-full h-2/3 scroll-py-4 scroll-my-4"
+          className="w-full h-2/3 scroll-py-4 scroll-my-4 bg-white"
         />
       </div>
       <ConnectionPoint item={item} position="top" />

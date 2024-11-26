@@ -29,7 +29,7 @@ export function PasteHandler({ activeTabId }: { activeTabId: string }) {
       );
 
       tabsStore.addItem(activeTabId, {
-        type: "text",
+        type: "user",
         content: text,
         height: DEFAULT_ITEM_SIZE.height,
         width: DEFAULT_ITEM_SIZE.width,

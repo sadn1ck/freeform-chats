@@ -1,4 +1,4 @@
-export type ItemType = "text" | "image";
+export type ItemType = "system" | "user" | "assistant";
 
 export interface Connection {
   id: string;
@@ -23,3 +23,5 @@ export interface DragItem {
   width: number;
   height: number;
 }
+
+export type AsyncIterableStream<T> = AsyncIterable<T> & ReadableStream<T>;

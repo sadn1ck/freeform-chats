@@ -2,7 +2,7 @@ import { Type } from "lucide-react";
 import { DEFAULT_ITEM_SIZE } from "../../utils/canvasLayout";
 
 const DEFAULT_TOOLBAR_INSERT_OPTIONS = [
-  { type: "text", icon: Type, ...DEFAULT_ITEM_SIZE },
+  { type: "system", icon: Type, ...DEFAULT_ITEM_SIZE },
 ];
 
 export function Toolbar() {

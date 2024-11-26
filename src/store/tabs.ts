@@ -1,7 +1,7 @@
 import { nanoid } from "nanoid";
 import { proxy } from "valtio";
 import { proxySet } from "valtio/utils";
-import type { CanvasItem, Connection } from "../types";
+import type { AsyncIterableStream, CanvasItem, Connection } from "../types";
 import { GraphPath } from "../types/graph";
 import { GraphTraverser } from "../utils/graphTraversal";
 
@@ -49,6 +49,15 @@ interface TabsStore {
   selectItem: (targetCanvas: string, id: string) => void;
   clearSelection: (targetCanvas: string) => void;
   removeItems: (tabId: string, itemIds: string[]) => void;
+
+  // ai
+  addToContent: (
+    tabId: string,
+    itemId: string,
+    stream: AsyncIterableStream<string>
+  ) => Promise<void>;
+
+  apiKey: string;
 }
 
 const initialTabId = nanoid(8);
@@ -59,6 +68,7 @@ export const tabsStore = proxy<TabsStore>({
   },
   tabsList: [{ id: initialTabId }],
   activeTabId: initialTabId,
+  apiKey: "",
 
   addTab() {
     const newId = nanoid(8);
@@ -168,4 +178,27 @@ export const tabsStore = proxy<TabsStore>({
     store.items = store.items.filter((item) => !itemIds.includes(item.id));
     itemIds.forEach((id) => store.selectedItemIds.delete(id));
   },
+
+  async addToContent(
+    tabId: string,
+    itemId: string,
+    stream: AsyncIterableStream<string>
+  ): Promise<void> {
+    const store = this.stores[tabId];
+    const item = store.items.find((i) => i.id === itemId);
+    if (!item) return;
+
+    for await (const chunk of stream) {
+      item.content += chunk;
+    }
+  },
 });
+
+// subscribe(tabsStore, () => {
+//   clientStore.set("apiKey", tabsStore.apiKey);
+//   clientStore.set("activeTabId", tabsStore.activeTabId);
+//   clientStore.set("tabsList", tabsStore.tabsList);
+//   Object.keys(tabsStore.stores).forEach((tabId) => {
+//     clientStore.set(tabId, tabsStore.stores[tabId]);
+//   });
+// });

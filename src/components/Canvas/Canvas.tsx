@@ -28,7 +28,7 @@ export function Canvas({ id: canvasId }: { id: string }) {
           y,
           width: dragItem.width,
           height: dragItem.height,
-          content: `I'm not an expert ... But after viewing and analyzing the post from beginning to end, line by line word by word, letter by letter I came to the conclusion and I can say, that I can't say anything because as I said at the beginning, I'm not an expert.`,
+          content: `[Enter partial prompt]`,
         });
       }
     },
