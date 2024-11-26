@@ -65,6 +65,9 @@ export function Canvas({ id: canvasId }: { id: string }) {
         />
       ))}
       <Arrows />
+      <pre className="top-1/3 left-1/2 -translate-x-1/2 absolute w-1/2 z-[0] opacity-70 pointer-events-none">
+        {window.helpMessage}
+      </pre>
     </div>
   );
 }

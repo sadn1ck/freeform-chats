@@ -197,7 +197,7 @@ export function CanvasItem({ item, isSelected }: Props) {
         userSelect: "none",
         touchAction: "none",
       }}
-      className="canvas-item group/canvas-item backdrop-blur-md p-1"
+      className="canvas-item group/canvas-item backdrop-blur-md p-1 z-10"
     >
       <Dialog.Root open={deep} onOpenChange={setDeep}>
         <Dialog.Trigger className="absolute top-0 right-0"></Dialog.Trigger>

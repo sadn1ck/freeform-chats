@@ -34,7 +34,12 @@ const ApiKeyPopover = () => {
               placeholder="OpenAI API key"
               onPaste={(e) => e.stopPropagation()}
             />
-            <Button size={"sm"} type="submit" disabled={snap.apiKey === apiKey}>
+            <Button
+              size={"sm"}
+              type="submit"
+              disabled={snap.apiKey === apiKey}
+              onClick={() => (tabsStore.apiKey = apiKey)}
+            >
               Save
             </Button>
             <select
